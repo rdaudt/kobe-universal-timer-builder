@@ -22,8 +22,6 @@ export function Run({ timer, layout = 'ring', showTimeline = false, onExit, onCo
   const [elapsed, setElapsed] = useState(0);
 
   const workerRef = useRef<Worker | null>(null);
-  const startTimeRef = useRef<number>(0);
-  const blockStartRef = useRef<number>(0);
 
   // Screen wake lock
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
@@ -253,7 +251,7 @@ function RunRing({ current, next, remaining, blockProgress, bgColor, isPrep, com
   );
 }
 
-function RunCentered({ current, remaining, bgColor, isPrep, compact }: LayoutProps) {
+function RunCentered({ current, remaining, bgColor, isPrep: _isPrep, compact }: LayoutProps) {
   return (
     <div style={{ padding: compact ? '0 16px 0 20px' : '0 24px', textAlign: 'center', color: '#F4EFE2' }}>
       <div className="t-tag" style={{ color: bgColor, fontSize: 13, marginBottom: 12 }}>
@@ -276,7 +274,7 @@ function RunCentered({ current, remaining, bgColor, isPrep, compact }: LayoutPro
   );
 }
 
-function RunFullbleed({ current, remaining, ink, isPrep, compact }: LayoutProps) {
+function RunFullbleed({ current, remaining, ink, isPrep: _isPrep, compact }: LayoutProps) {
   return (
     <div className="pulse" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: ink, padding: compact ? '0 12px 0 20px' : '0 24px', textAlign: 'center' }}>
       <div className="t-tag" style={{ opacity: 0.7, fontSize: 13 }}>

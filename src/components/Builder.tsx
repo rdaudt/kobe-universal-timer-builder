@@ -8,10 +8,9 @@ import {
   useSensors,
   type DragStartEvent,
   type DragEndEvent,
-  type DragOverEvent,
 } from '@dnd-kit/core';
 import { Icon } from './Icon';
-import { Block, BlockChip, RepeatChip, RepeatBlockCard, Connector } from './Block';
+import { Block, BlockChip, RepeatChip, RepeatBlockCard } from './Block';
 import { BlockEditor } from './BlockEditor';
 import { makeBlock, makeRepeat, totalDuration, fmtLoose, compositionStrip, countBlocks, uid } from '../lib/helpers';
 import type { TimerDefinition, TimerNode, FoundationBlock, RepeatBlock } from '../types';
@@ -37,21 +36,6 @@ function getParentSeq(seq: TimerNode[], path: Path): TimerNode[] {
   return node.sequence;
 }
 
-function pathEq(a: Path, b: Path): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  return a.every((v, i) => v === b[i]);
-}
-
-function depthOf(seq: TimerNode[], targetId: string, d = 0): number {
-  for (const b of seq) {
-    if (b.id === targetId) return d;
-    if (b.type === 'repeat') {
-      const found = depthOf(b.sequence, targetId, d + 1);
-      if (found >= 0) return found;
-    }
-  }
-  return -1;
-}
 
 const PALETTE_TYPES = ['warmup', 'work', 'rest', 'transition', 'cooldown'] as const;
 
@@ -139,7 +123,7 @@ interface DraggableRepeatProps {
 
 function DraggableRepeat({
   block, path, onOpen, onDecrement, onIncrement,
-  drag, dropTarget, nestViz, styleVariant, depth, renderSeq,
+  drag: _drag, dropTarget: _dropTarget, nestViz, styleVariant: _styleVariant, depth, renderSeq,
 }: DraggableRepeatProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: block.id });
   return (
@@ -543,7 +527,6 @@ export function Builder({ timer, onChange, onRun, onBack, blockStyle = 'snap', n
 
 function MiniTimeline({ timer }: { timer: TimerDefinition }) {
   const items = compositionStrip(timer.sequence);
-  const total = items.reduce((s, i) => s + i.weight, 0) || 1;
   return (
     <div style={{ margin: '12px 0 0' }}>
       <div style={{ display: 'flex', height: 6, borderRadius: 999, overflow: 'hidden', background: 'rgba(255,255,255,0.05)' }}>
