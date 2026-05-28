@@ -171,7 +171,7 @@ function EmptyContainer({ path }: { path: Path }) {
 function PaletteBlockChip({ type }: { type: FoundationBlock['type'] }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `palette:${type}` });
   return (
-    <div ref={setNodeRef} {...attributes}>
+    <div ref={setNodeRef} {...attributes} style={{ flex: '1 1 calc(33.33% - 6px)', minWidth: 0 }}>
       <BlockChip type={type} dragging={isDragging} dragProps={listeners} />
     </div>
   );
@@ -180,7 +180,7 @@ function PaletteBlockChip({ type }: { type: FoundationBlock['type'] }) {
 function PaletteRepeatChip() {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: 'palette:repeat' });
   return (
-    <div ref={setNodeRef} {...attributes}>
+    <div ref={setNodeRef} {...attributes} style={{ flex: '1 1 calc(33.33% - 6px)', minWidth: 0 }}>
       <RepeatChip dragging={isDragging} dragProps={listeners} />
     </div>
   );
@@ -372,9 +372,11 @@ export function Builder({ timer, onChange, onRun, onBack, blockStyle = 'snap', n
 
   const overlayContent = activeDrag ? (
     activeDrag.kind === 'palette' ? (
-      activeDrag.type === 'repeat'
-        ? <RepeatChip />
-        : <BlockChip type={activeDrag.type as FoundationBlock['type']} />
+      <div style={{ width: 120 }}>
+        {activeDrag.type === 'repeat'
+          ? <RepeatChip />
+          : <BlockChip type={activeDrag.type as FoundationBlock['type']} />}
+      </div>
     ) : activeDrag.node ? (
       activeDrag.node.type === 'repeat'
         ? (
@@ -480,7 +482,7 @@ export function Builder({ timer, onChange, onRun, onBack, blockStyle = 'snap', n
           background: 'linear-gradient(180deg, transparent, rgba(14,13,16,0.92) 30%, rgba(14,13,16,0.98))',
           backdropFilter: 'blur(14px)',
         }}>
-          <div className="no-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '6px 2px 14px', marginBottom: 6 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '6px 2px 14px', marginBottom: 6 }}>
             {PALETTE_TYPES.map((type) => (
               <PaletteBlockChip key={type} type={type} />
             ))}

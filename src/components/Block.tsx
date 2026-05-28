@@ -82,7 +82,7 @@ export function BlockChip({ type, dragging, dragProps }: BlockChipProps) {
   return (
     <div
       className={`block block--chip ${dragging ? 'block--dragging' : ''}`}
-      style={{ '--blk-bg': def.color, '--blk-ink': ink, minWidth: 116, cursor: 'grab', touchAction: 'none' } as React.CSSProperties}
+      style={{ '--blk-bg': def.color, '--blk-ink': ink, minWidth: 0, cursor: 'grab', touchAction: 'none' } as React.CSSProperties}
       {...dragProps}
     >
       <Icon name={def.icon} size={16} color={ink} stroke={2.4} />
@@ -104,7 +104,7 @@ export function RepeatChip({ dragging, dragProps }: RepeatChipProps) {
     <div
       className={`block block--chip ${dragging ? 'block--dragging' : ''}`}
       style={{
-        minWidth: 116,
+        minWidth: 0,
         background: 'transparent',
         border: '1.5px dashed var(--gold-2)',
         color: 'var(--gold-2)',
