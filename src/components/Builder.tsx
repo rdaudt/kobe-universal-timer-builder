@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -167,16 +167,6 @@ function EmptyContainer({ path }: { path: Path }) {
   );
 }
 
-// ─── Palette cancel zone ─────────────────────────────────────────────────────
-// Wraps the palette panel as a droppable so that drags released over the
-// palette register an over-id of 'palette-zone' rather than hitting a canvas
-// DropZone that is hidden behind the palette (DOM coords, not z-index, drive
-// dnd-kit collision detection).
-function PalettePanel({ children, style }: { children: React.ReactNode; style: React.CSSProperties }) {
-  const { setNodeRef } = useDroppable({ id: 'palette-zone' });
-  return <div ref={setNodeRef} style={style}>{children}</div>;
-}
-
 // ─── Palette chip with draggable ────────────────────────────────────────────
 
 function PaletteBlockChip({ type }: { type: FoundationBlock['type'] }) {
@@ -223,6 +213,7 @@ export function Builder({ timer, onChange, onRun, onBack, onRestore, blockStyle 
   const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
   const [nameEdit, setNameEdit] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const paletteDomRef = useRef<HTMLDivElement>(null);
 
   const dur = totalDuration(timer.sequence);
 
@@ -288,8 +279,19 @@ export function Builder({ timer, onChange, onRun, onBack, onRestore, blockStyle 
 
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveDrag(null);
+
+    // Cancel if the drag's final position overlaps the palette panel.
+    // Uses geometry rather than collision detection because dnd-kit can still
+    // resolve a canvas DropZone hidden behind the absolutely-positioned palette.
+    const translated = e.active.rect.current.translated;
+    if (translated && paletteDomRef.current) {
+      const paletteRect = paletteDomRef.current.getBoundingClientRect();
+      const dragCenterY = translated.top + translated.height / 2;
+      if (dragCenterY >= paletteRect.top) return;
+    }
+
     const overId = String(e.over?.id ?? '');
-    if (!overId || overId === 'palette-zone') return;
+    if (!overId) return;
     const dt = parseDzId(overId);
     if (!dt) return;
 
@@ -496,7 +498,7 @@ export function Builder({ timer, onChange, onRun, onBack, onRestore, blockStyle 
         </div>
 
         {/* Palette + Run button */}
-        <PalettePanel style={{
+        <div ref={paletteDomRef} style={{
           position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 8,
           padding: `12px 16px calc(30px + env(safe-area-inset-bottom, 0px))`,
           background: 'var(--surface-2)',
@@ -521,7 +523,7 @@ export function Builder({ timer, onChange, onRun, onBack, onRestore, blockStyle 
               {fmtLoose(dur)}
             </span>
           </button>
-        </PalettePanel>
+        </div>
 
         {/* Block editor sheet */}
         {editing && editingBlock && (
