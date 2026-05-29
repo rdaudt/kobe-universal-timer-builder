@@ -167,6 +167,16 @@ function EmptyContainer({ path }: { path: Path }) {
   );
 }
 
+// ─── Palette cancel zone ─────────────────────────────────────────────────────
+// Wraps the palette panel as a droppable so that drags released over the
+// palette register an over-id of 'palette-zone' rather than hitting a canvas
+// DropZone that is hidden behind the palette (DOM coords, not z-index, drive
+// dnd-kit collision detection).
+function PalettePanel({ children, style }: { children: React.ReactNode; style: React.CSSProperties }) {
+  const { setNodeRef } = useDroppable({ id: 'palette-zone' });
+  return <div ref={setNodeRef} style={style}>{children}</div>;
+}
+
 // ─── Palette chip with draggable ────────────────────────────────────────────
 
 function PaletteBlockChip({ type }: { type: FoundationBlock['type'] }) {
@@ -279,7 +289,7 @@ export function Builder({ timer, onChange, onRun, onBack, onRestore, blockStyle 
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveDrag(null);
     const overId = String(e.over?.id ?? '');
-    if (!overId) return;
+    if (!overId || overId === 'palette-zone') return;
     const dt = parseDzId(overId);
     if (!dt) return;
 
@@ -486,7 +496,7 @@ export function Builder({ timer, onChange, onRun, onBack, onRestore, blockStyle 
         </div>
 
         {/* Palette + Run button */}
-        <div style={{
+        <PalettePanel style={{
           position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 8,
           padding: `12px 16px calc(30px + env(safe-area-inset-bottom, 0px))`,
           background: 'var(--surface-2)',
@@ -511,7 +521,7 @@ export function Builder({ timer, onChange, onRun, onBack, onRestore, blockStyle 
               {fmtLoose(dur)}
             </span>
           </button>
-        </div>
+        </PalettePanel>
 
         {/* Block editor sheet */}
         {editing && editingBlock && (
