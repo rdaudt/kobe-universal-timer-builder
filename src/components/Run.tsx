@@ -20,7 +20,7 @@ export function Run({ timer, layout = 'ring', onExit, onComplete }: RunProps) {
   const totalDur = useMemo(() => queue.reduce((s, b) => s + b.duration, 0), [queue]);
   const [elapsed, setElapsed] = useState(0);
   const [showMap, setShowMap] = useState(false);
-  const jumpTargetRef = useRef<number | null>(null);
+  const [showStopConfirm, setShowStopConfirm] = useState(false);
 
   const workerRef = useRef<Worker | null>(null);
 
@@ -56,20 +56,6 @@ export function Run({ timer, layout = 'ring', onExit, onComplete }: RunProps) {
 
     worker.onmessage = (e: MessageEvent) => {
       const { elapsed: workerElapsed } = e.data as { elapsed: number };
-
-      if (jumpTargetRef.current !== null) {
-        const jt = jumpTargetRef.current;
-        jumpTargetRef.current = null;
-        if (jt > localIdx && jt < queue.length) {
-          localIdx = jt;
-          blockStart = workerElapsed;
-          setIdx(localIdx);
-          setRemaining(queue[localIdx].duration);
-          const jb = queue[localIdx];
-          if (jb?.type === 'rest') playRestChime(); else playBlockStart();
-          return;
-        }
-      }
 
       const nowElapsed = Math.round(workerElapsed / 1000);
       setElapsed(nowElapsed);
@@ -130,13 +116,6 @@ export function Run({ timer, layout = 'ring', onExit, onComplete }: RunProps) {
     setRemaining(queue[idx + 1].duration);
   };
 
-  const jumpTo = (targetIdx: number) => {
-    if (targetIdx <= idx || targetIdx >= queue.length) return;
-    jumpTargetRef.current = targetIdx;
-    setIdx(targetIdx);
-    setRemaining(queue[targetIdx].duration);
-  };
-
   const bgColor = current?.color ?? '#D4A017';
   const ink = current?.type === 'rest' || current?.type === 'transition' ? '#F4EFE2' : (BLOCK_DEFAULTS[current?.type ?? 'work']?.ink ?? '#0F0F11');
   const isPrep = current?.type === 'prepare';
@@ -154,7 +133,7 @@ export function Run({ timer, layout = 'ring', onExit, onComplete }: RunProps) {
     >
       {/* Header */}
       <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', left: 16, right: 16, zIndex: 5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <button onClick={onExit} className="btn btn--icon" style={{ width: 40, height: 40, background: layout === 'fullbleed' ? 'rgba(0,0,0,0.18)' : 'var(--surface)', color: ink }}>
+        <button onClick={() => setShowStopConfirm(true)} className="btn btn--icon" style={{ width: 40, height: 40, background: layout === 'fullbleed' ? 'rgba(0,0,0,0.18)' : 'var(--surface)', color: ink }}>
           <Icon name="x" size={18} color={layout === 'fullbleed' ? ink : 'var(--ink)'} />
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: layout === 'fullbleed' ? 'rgba(0,0,0,0.18)' : 'var(--surface)', color: layout === 'fullbleed' ? ink : 'var(--ink-2)', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700 }}>
@@ -178,7 +157,7 @@ export function Run({ timer, layout = 'ring', onExit, onComplete }: RunProps) {
           {layout === 'ring' && <RunRing {...layoutProps} />}
         </div>
         {showMap && (
-          <RunTimeline timer={timer} current={current} elapsed={elapsed} ink={layout === 'fullbleed' ? ink : 'var(--ink)'} isFullbleed={layout === 'fullbleed'} totalDur={totalDur} queue={queue} currentIdx={idx} onJumpTo={jumpTo} />
+          <RunTimeline timer={timer} current={current} elapsed={elapsed} ink={layout === 'fullbleed' ? ink : 'var(--ink)'} isFullbleed={layout === 'fullbleed'} totalDur={totalDur} queue={queue} currentIdx={idx} />
         )}
       </div>
 
@@ -209,6 +188,17 @@ export function Run({ timer, layout = 'ring', onExit, onComplete }: RunProps) {
 
       {paused && (
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2, pointerEvents: 'none' }} />
+      )}
+
+      {showStopConfirm && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 20, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 20, padding: '28px 24px 24px', width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, textAlign: 'center' }}>
+            <div className="t-display" style={{ fontSize: 22 }}>Stop timer?</div>
+            <div style={{ color: 'var(--ink-2)', fontSize: 14, marginBottom: 8 }}>Your progress will be lost.</div>
+            <button onClick={onExit} className="btn" style={{ width: '100%', height: 50, background: '#E04060', color: '#fff', fontSize: 15, borderRadius: 14 }}>Stop</button>
+            <button onClick={() => setShowStopConfirm(false)} className="btn btn--ghost" style={{ width: '100%', height: 50, fontSize: 15 }}>Keep going</button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -330,7 +320,7 @@ function RunFullbleed({ current, remaining, ink, isPrep: _isPrep, compact }: Lay
 
 import type { TimerNode } from '../types';
 
-function RunTimeline({ timer, current, elapsed, ink, isFullbleed, totalDur, queue, currentIdx, onJumpTo }: { timer: TimerDefinition; current: FlatBlock | undefined; elapsed: number; ink: string; isFullbleed: boolean; totalDur: number; queue: FlatBlock[]; currentIdx: number; onJumpTo: (i: number) => void }) {
+function RunTimeline({ timer, current, elapsed, ink, isFullbleed, totalDur, queue, currentIdx }: { timer: TimerDefinition; current: FlatBlock | undefined; elapsed: number; ink: string; isFullbleed: boolean; totalDur: number; queue: FlatBlock[]; currentIdx: number }) {
   const ctxMap: Record<string, { cur: number; total: number }> = {};
   (current?._ctx ?? []).forEach((c) => { ctxMap[c.id] = c; });
   const currentLeafId = current?.id;
@@ -346,7 +336,7 @@ function RunTimeline({ timer, current, elapsed, ink, isFullbleed, totalDur, queu
         );
       }
       const isCurrent = currentLeafId === b.id;
-      return <LeafBar key={b.id} block={b} isCurrent={isCurrent} totalDur={totalDur} ink={ink} isFullbleed={isFullbleed} queue={queue} currentIdx={currentIdx} onJumpTo={onJumpTo} />;
+      return <LeafBar key={b.id} block={b} isCurrent={isCurrent} totalDur={totalDur} ink={ink} isFullbleed={isFullbleed} queue={queue} currentIdx={currentIdx} />;
     });
   };
 
@@ -371,12 +361,10 @@ function RunTimeline({ timer, current, elapsed, ink, isFullbleed, totalDur, queu
 
 import type { FoundationBlock, RepeatBlock } from '../types';
 
-function LeafBar({ block, isCurrent, totalDur, ink, isFullbleed, queue, currentIdx, onJumpTo }: { block: FoundationBlock; isCurrent: boolean; totalDur: number; ink: string; isFullbleed: boolean; queue: FlatBlock[]; currentIdx: number; onJumpTo: (i: number) => void }) {
+function LeafBar({ block, isCurrent, totalDur, ink, isFullbleed, queue, currentIdx }: { block: FoundationBlock; isCurrent: boolean; totalDur: number; ink: string; isFullbleed: boolean; queue: FlatBlock[]; currentIdx: number }) {
   const ratio = block.duration / totalDur;
   const h = Math.max(8, Math.min(40, Math.round(ratio * 360)));
   const isPast = !queue.slice(currentIdx).some((fb) => fb.id === block.id);
-  const nextIdx = !isPast && !isCurrent ? queue.findIndex((fb, i) => i > currentIdx && fb.id === block.id) : -1;
-  const canJump = nextIdx !== -1;
 
   const leafRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -387,7 +375,6 @@ function LeafBar({ block, isCurrent, totalDur, ink, isFullbleed, queue, currentI
     <div
       ref={leafRef}
       title={`${block.name} · ${fmt(block.duration)}`}
-      onClick={canJump ? () => onJumpTo(nextIdx) : undefined}
       style={{
         position: 'relative', height: h, borderRadius: 4, background: block.color,
         opacity: isCurrent ? 1 : isPast ? 0.2 : (isFullbleed ? 0.55 : 0.65),
@@ -395,7 +382,6 @@ function LeafBar({ block, isCurrent, totalDur, ink, isFullbleed, queue, currentI
         transform: isCurrent ? 'scaleX(1.15)' : 'scaleX(1)',
         transformOrigin: 'center',
         transition: 'transform .2s, opacity .2s, box-shadow .2s',
-        cursor: canJump ? 'pointer' : 'default',
       }}
     >
       {isCurrent && (
