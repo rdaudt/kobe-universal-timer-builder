@@ -3,7 +3,7 @@ import { Onboarding } from './components/Onboarding';
 import { Library } from './components/Library';
 import { Builder } from './components/Builder';
 import { Run, Completion } from './components/Run';
-import { syncBundledTimers, getAllTimers, saveTimer, restoreBundledTimer } from './lib/db';
+import { syncBundledTimers, getAllTimers, saveTimer, restoreBundledTimer, deleteTimer } from './lib/db';
 import { uid } from './lib/helpers';
 import type { TimerDefinition, Route } from './types';
 
@@ -87,6 +87,12 @@ export default function App() {
     setTimers((prev) => prev.map((t) => (t.id === id ? canonical : t)));
   }, []);
 
+  const handleDeleteTimer = useCallback(async (id: string) => {
+    await deleteTimer(id);
+    setTimers((prev) => prev.filter((t) => t.id !== id));
+    setRoute('library');
+  }, []);
+
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'var(--bg)' }}>
@@ -114,6 +120,7 @@ export default function App() {
           onRun={() => setRoute('run')}
           onBack={handleBack}
           onRestore={handleRestore}
+          onDelete={handleDeleteTimer}
         />
       )}
       {route === 'run' && activeTimer && (

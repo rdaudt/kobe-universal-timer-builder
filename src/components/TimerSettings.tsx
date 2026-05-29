@@ -8,11 +8,13 @@ interface TimerSettingsProps {
   onClose: () => void;
   isUserModifiedBundled?: boolean;
   onRestore?: () => void;
+  onDelete?: () => void;
 }
 
-export function TimerSettings({ timer, onChange, onClose, isUserModifiedBundled, onRestore }: TimerSettingsProps) {
+export function TimerSettings({ timer, onChange, onClose, isUserModifiedBundled, onRestore, onDelete }: TimerSettingsProps) {
   const [tagInput, setTagInput] = useState('');
   const [confirmRestore, setConfirmRestore] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const set = <K extends keyof TimerDefinition>(key: K, value: TimerDefinition[K]) =>
     onChange({ ...timer, [key]: value });
@@ -186,6 +188,52 @@ export function TimerSettings({ timer, onChange, onClose, isUserModifiedBundled,
                         }}
                       >
                         Yes, restore
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {onDelete && (
+              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 18 }}>
+                <div className="t-tag" style={{ color: 'var(--ink-3)', marginBottom: 10 }}>DANGER ZONE</div>
+                {!confirmDelete ? (
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    style={{
+                      width: '100%', padding: '11px 0', borderRadius: 12,
+                      border: '1px solid rgba(220,60,60,0.3)', background: 'rgba(220,60,60,0.07)',
+                      color: '#e05555', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    Delete timer
+                  </button>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+                      This will permanently delete this timer. This cannot be undone.
+                    </p>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        onClick={() => setConfirmDelete(false)}
+                        style={{
+                          flex: 1, padding: '11px 0', borderRadius: 12, border: 'none',
+                          background: 'var(--surface-2)', color: 'var(--ink-2)',
+                          fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={onDelete}
+                        style={{
+                          flex: 1, padding: '11px 0', borderRadius: 12, border: 'none',
+                          background: 'rgba(220,60,60,0.18)', color: '#e05555',
+                          fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        }}
+                      >
+                        Yes, delete
                       </button>
                     </div>
                   </div>

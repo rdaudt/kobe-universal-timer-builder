@@ -38,9 +38,19 @@ export function Library({ timers, onOpen, onRun, onNew }: LibraryProps) {
       <div style={{ padding: 'calc(env(safe-area-inset-top, 12px) + 12px) 22px 0', position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div className="t-tag" style={{ color: 'var(--gold)' }}>KOBE · v1.0</div>
-          <button className="btn btn--icon" style={{ width: 38, height: 38, background: 'var(--surface)' }}>
-            <Icon name="settings" size={18} color="var(--ink-2)" />
-          </button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              onClick={onNew}
+              className="btn btn--gold"
+              style={{ padding: '8px 14px', fontSize: 12, gap: 5, height: 38 }}
+            >
+              <Icon name="plus" size={13} color="var(--gold-ink)" />
+              New Timer
+            </button>
+            <button className="btn btn--icon" style={{ width: 38, height: 38, background: 'var(--surface)' }}>
+              <Icon name="settings" size={18} color="var(--ink-2)" />
+            </button>
+          </div>
         </div>
         <h1 className="t-display" style={{ fontSize: 44, lineHeight: 0.9, margin: '0 0 6px', letterSpacing: '-0.01em' }}>
           Your Timers
@@ -85,17 +95,6 @@ export function Library({ timers, onOpen, onRun, onNew }: LibraryProps) {
         {filtered.map((t) => (
           <CardRow key={t.id} timer={t} onOpen={() => onOpen(t)} onRun={() => onRun(t)} />
         ))}
-        <button
-          onClick={onNew}
-          style={{
-            background: 'transparent', border: '1.5px dashed var(--line-2)', color: 'var(--ink-2)',
-            padding: '18px', borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: 8, fontFamily: 'var(--f-body)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-          }}
-        >
-          <Icon name="plus" size={16} color="var(--gold)" />
-          New Timer
-        </button>
       </div>
     </div>
   );
