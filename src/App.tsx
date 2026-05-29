@@ -3,7 +3,7 @@ import { Onboarding } from './components/Onboarding';
 import { Library } from './components/Library';
 import { Builder } from './components/Builder';
 import { Run, Completion } from './components/Run';
-import { seedBundledTimers, getAllTimers, saveTimer } from './lib/db';
+import { syncBundledTimers, getAllTimers, saveTimer, restoreBundledTimer } from './lib/db';
 import { uid } from './lib/helpers';
 import type { TimerDefinition, Route } from './types';
 
@@ -20,7 +20,7 @@ export default function App() {
   // Seed and load timers
   useEffect(() => {
     (async () => {
-      await seedBundledTimers();
+      await syncBundledTimers();
       const all = await getAllTimers();
       setTimers(all);
       setLoading(false);
@@ -70,6 +70,12 @@ export default function App() {
     await saveTimer(next);
   }, []);
 
+  const handleRestore = useCallback(async (id: string) => {
+    const canonical = await restoreBundledTimer(id);
+    if (!canonical) return;
+    setTimers((prev) => prev.map((t) => (t.id === id ? canonical : t)));
+  }, []);
+
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'var(--bg)' }}>
@@ -96,6 +102,7 @@ export default function App() {
           onChange={handleTimerChange}
           onRun={() => setRoute('run')}
           onBack={() => setRoute('library')}
+          onRestore={handleRestore}
         />
       )}
       {route === 'run' && activeTimer && (

@@ -193,11 +193,39 @@ const BUNDLED_TIMERS: TimerDefinition[] = [
   },
 ];
 
-export async function seedBundledTimers(): Promise<void> {
-  const count = await db.timers.count();
-  if (count === 0) {
-    await db.timers.bulkAdd(BUNDLED_TIMERS);
+export async function syncBundledTimers(): Promise<void> {
+  const all = await db.timers.toArray();
+  const dbBundled = new Map(
+    all.filter(t => t.isBundled).map(t => [t.id, t])
+  );
+
+  const toAdd: TimerDefinition[] = [];
+  const toUpdate: TimerDefinition[] = [];
+
+  for (const canonical of BUNDLED_TIMERS) {
+    const existing = dbBundled.get(canonical.id);
+    if (!existing) {
+      toAdd.push(canonical);
+    } else if ((existing.bundleVersion ?? 0) < (canonical.bundleVersion ?? 1)) {
+      if (existing.version === 1) {
+        toUpdate.push(canonical);
+      }
+    }
   }
+
+  if (toAdd.length) await db.timers.bulkAdd(toAdd);
+  for (const t of toUpdate) await db.timers.put(t);
+}
+
+export function getCanonicalBundledTimer(id: string): TimerDefinition | undefined {
+  return BUNDLED_TIMERS.find(t => t.id === id);
+}
+
+export async function restoreBundledTimer(id: string): Promise<TimerDefinition | null> {
+  const canonical = getCanonicalBundledTimer(id);
+  if (!canonical) return null;
+  await db.timers.put(canonical);
+  return canonical;
 }
 
 export async function getAllTimers(): Promise<TimerDefinition[]> {

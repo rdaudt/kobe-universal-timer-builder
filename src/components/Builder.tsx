@@ -203,11 +203,12 @@ export interface BuilderProps {
   onChange: (t: TimerDefinition) => void;
   onRun: () => void;
   onBack: () => void;
+  onRestore?: (id: string) => void;
   blockStyle?: string;
   nestViz?: string;
 }
 
-export function Builder({ timer, onChange, onRun, onBack, blockStyle = 'snap', nestViz = 'bracket' }: BuilderProps) {
+export function Builder({ timer, onChange, onRun, onBack, onRestore, blockStyle = 'snap', nestViz = 'bracket' }: BuilderProps) {
   const [editing, setEditing] = useState<Path | null>(null);
   const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
   const [nameEdit, setNameEdit] = useState(false);
@@ -532,6 +533,8 @@ export function Builder({ timer, onChange, onRun, onBack, blockStyle = 'snap', n
             timer={timer}
             onChange={onChange}
             onClose={() => setSettingsOpen(false)}
+            isUserModifiedBundled={timer.isBundled && timer.version > 1}
+            onRestore={onRestore ? () => { onRestore(timer.id); setSettingsOpen(false); } : undefined}
           />
         )}
       </div>
