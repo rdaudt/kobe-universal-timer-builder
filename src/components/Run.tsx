@@ -75,7 +75,7 @@ export function Run({ timer, layout = 'ring', showTimeline = false, onExit, onCo
         playBlockEnd();
         if (localIdx + 1 >= queue.length) {
           worker.postMessage({ type: 'stop' });
-          playCompletion();
+          if ((timer.completionSound ?? 'completion-horn') !== 'none') playCompletion();
           setTimeout(() => onComplete(), 600);
           return;
         }
