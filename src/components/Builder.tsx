@@ -12,6 +12,7 @@ import {
 import { Icon } from './Icon';
 import { Block, BlockChip, RepeatChip, RepeatBlockCard } from './Block';
 import { BlockEditor } from './BlockEditor';
+import { TimerSettings } from './TimerSettings';
 import { makeBlock, makeRepeat, totalDuration, fmtLoose, compositionStrip, countBlocks, uid } from '../lib/helpers';
 import type { TimerDefinition, TimerNode, FoundationBlock, RepeatBlock } from '../types';
 
@@ -210,6 +211,7 @@ export function Builder({ timer, onChange, onRun, onBack, blockStyle = 'snap', n
   const [editing, setEditing] = useState<Path | null>(null);
   const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
   const [nameEdit, setNameEdit] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const dur = totalDuration(timer.sequence);
 
@@ -418,6 +420,13 @@ export function Builder({ timer, onChange, onRun, onBack, blockStyle = 'snap', n
             </button>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
+                className="btn btn--icon"
+                style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.05)' }}
+                onClick={() => setSettingsOpen(true)}
+              >
+                <Icon name="settings" size={16} color="var(--ink)" />
+              </button>
+              <button
                 className="btn"
                 style={{ padding: '8px 14px', height: 38, fontSize: 13, background: 'rgba(255,255,255,0.05)', color: 'var(--ink)' }}
                 onClick={() => onChange({ ...timer, updatedAt: new Date().toISOString() })}
@@ -516,6 +525,13 @@ export function Builder({ timer, onChange, onRun, onBack, blockStyle = 'snap', n
               insertAt(editing.slice(0, -1), editing[editing.length - 1] + 1, copy);
               setEditing(null);
             }}
+          />
+        )}
+        {settingsOpen && (
+          <TimerSettings
+            timer={timer}
+            onChange={onChange}
+            onClose={() => setSettingsOpen(false)}
           />
         )}
       </div>
