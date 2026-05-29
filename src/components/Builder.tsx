@@ -473,7 +473,7 @@ export function Builder({ timer, onChange, onRun, onBack, blockStyle = 'snap', n
         {/* Canvas */}
         <div
           className="no-scrollbar"
-          style={{ flex: 1, overflow: 'auto', padding: '8px 16px 220px', position: 'relative', zIndex: 2 }}
+          style={{ flex: 1, overflow: 'auto', padding: '8px 16px calc(250px + env(safe-area-inset-bottom, 0px))', position: 'relative', zIndex: 2 }}
         >
           {renderSeq(timer.sequence, [], 0)}
           {timer.sequence.length === 0 && !activeDrag && (
