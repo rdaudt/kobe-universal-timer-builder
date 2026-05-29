@@ -489,8 +489,9 @@ export function Builder({ timer, onChange, onRun, onBack, onRestore, blockStyle 
         <div style={{
           position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 8,
           padding: `12px 16px calc(30px + env(safe-area-inset-bottom, 0px))`,
-          background: 'linear-gradient(180deg, transparent, rgba(14,13,16,0.92) 30%, rgba(14,13,16,0.98))',
-          backdropFilter: 'blur(14px)',
+          background: 'var(--surface-2)',
+          borderTop: '1px solid var(--gold)',
+          borderRadius: '12px 12px 0 0',
         }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '6px 2px 14px', marginBottom: 6 }}>
             {PALETTE_TYPES.map((type) => (
