@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Onboarding } from './components/Onboarding';
 import { Library } from './components/Library';
 import { Builder } from './components/Builder';
@@ -14,6 +14,7 @@ export default function App() {
   const [timers, setTimers] = useState<TimerDefinition[]>([]);
   const [activeTimerId, setActiveTimerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const unsavedNewTimers = useRef<Set<string>>(new Set());
 
   const activeTimer = timers.find((t) => t.id === activeTimerId) ?? timers[0];
 
@@ -60,15 +61,25 @@ export default function App() {
       version: 1,
       sequence: [],
     };
+    unsavedNewTimers.current.add(t.id);
     setTimers((prev) => [t, ...prev]);
     setActiveTimerId(t.id);
     setRoute('builder');
   };
 
   const handleTimerChange = useCallback(async (next: TimerDefinition) => {
+    unsavedNewTimers.current.delete(next.id);
     setTimers((prev) => prev.map((t) => (t.id === next.id ? next : t)));
     await saveTimer(next);
   }, []);
+
+  const handleBack = useCallback(() => {
+    if (activeTimerId && unsavedNewTimers.current.has(activeTimerId)) {
+      unsavedNewTimers.current.delete(activeTimerId);
+      setTimers((prev) => prev.filter((t) => t.id !== activeTimerId));
+    }
+    setRoute('library');
+  }, [activeTimerId]);
 
   const handleRestore = useCallback(async (id: string) => {
     const canonical = await restoreBundledTimer(id);
@@ -101,7 +112,7 @@ export default function App() {
           timer={activeTimer}
           onChange={handleTimerChange}
           onRun={() => setRoute('run')}
-          onBack={() => setRoute('library')}
+          onBack={handleBack}
           onRestore={handleRestore}
         />
       )}
