@@ -339,35 +339,64 @@ export function Builder({ timer, onChange, onRun, onBack, onRestore, onDelete, b
         : makeBlock(type as FoundationBlock['type']);
       insertAt(dt.parentPath, dt.index, newNode);
     } else {
-      // Find and remove the node from its current position, then insert
-      let movedNode: TimerNode | null = null;
+      // Remove and insert in one update so both operations see the same clone.
+      // Two separate update() calls would each deep-clone the stale `timer`,
+      // causing the second insert to restore the original position → apparent copy.
       update((d) => {
-        const remove = (seq: TimerNode[]): boolean => {
+        let movedNode: TimerNode | null = null;
+        let removedParentPath: Path = [];
+        let removedIndex = -1;
+
+        const findAndRemove = (seq: TimerNode[], parentPath: Path): boolean => {
           for (let i = 0; i < seq.length; i++) {
             if (seq[i].id === dragId) {
-              [movedNode] = seq.splice(i, 1);
+              movedNode = seq[i];
+              removedParentPath = parentPath;
+              removedIndex = i;
+              seq.splice(i, 1);
               return true;
             }
             if (seq[i].type === 'repeat') {
-              if (remove((seq[i] as RepeatBlock).sequence)) return true;
+              if (findAndRemove((seq[i] as RepeatBlock).sequence, [...parentPath, i])) return true;
             }
           }
           return false;
         };
-        remove(d.sequence);
-      });
-      if (!movedNode) return;
+        findAndRemove(d.sequence, []);
+        if (!movedNode) return;
 
-      // Now insert at target
-      update((d) => {
-        const seq = dt.parentPath.length === 0
-          ? d.sequence
-          : (getAt(d.sequence, dt.parentPath) as RepeatBlock).sequence;
-
-        // Prevent dragging a container into itself (can't happen since we removed it)
+        // Adjust the target parentPath and index for the removal.
+        // If the removal shifted an ancestor index (e.g. removed element 0 at root
+        // while target parent is root[1]), decrement that component.
+        // If removal was in the same sequence as the insert target and before it,
+        // decrement the insert index.
+        const adjustedParentPath = [...dt.parentPath];
         let adjustedIndex = dt.index;
-        if (adjustedIndex > seq.length) adjustedIndex = seq.length;
-        seq.splice(adjustedIndex, 0, movedNode!);
+
+        for (let k = 0; k <= adjustedParentPath.length; k++) {
+          if (k === removedParentPath.length) {
+            if (k < adjustedParentPath.length) {
+              if (removedIndex < adjustedParentPath[k]) adjustedParentPath[k]--;
+            } else if (removedIndex < adjustedIndex) {
+              adjustedIndex--;
+            }
+            break;
+          }
+          if (k >= adjustedParentPath.length || adjustedParentPath[k] !== removedParentPath[k]) break;
+        }
+
+        let targetSeq: TimerNode[];
+        if (adjustedParentPath.length === 0) {
+          targetSeq = d.sequence;
+        } else {
+          const parent = getAt(d.sequence, adjustedParentPath);
+          if (!parent || parent.type !== 'repeat') return;
+          targetSeq = (parent as RepeatBlock).sequence;
+        }
+
+        if (adjustedIndex > targetSeq.length) adjustedIndex = targetSeq.length;
+        if (adjustedIndex < 0) adjustedIndex = 0;
+        targetSeq.splice(adjustedIndex, 0, movedNode!);
       });
     }
   };
