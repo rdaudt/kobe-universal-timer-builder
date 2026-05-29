@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -94,14 +94,31 @@ function DraggableFoundationBlock({
   nestViz: string; styleVariant: string;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: block.id });
+  const [isGrabbed, setIsGrabbed] = useState(false);
+
+  useEffect(() => {
+    if (isDragging) setIsGrabbed(false);
+  }, [isDragging]);
+
+  const wrappedListeners = {
+    ...listeners,
+    onPointerDown: (e: React.PointerEvent<Element>) => {
+      setIsGrabbed(true);
+      (listeners as any)?.onPointerDown?.(e);
+    },
+    onPointerUp: () => setIsGrabbed(false),
+    onPointerCancel: () => setIsGrabbed(false),
+  };
+
   return (
     <div ref={setNodeRef} {...attributes}>
       <Block
         block={block}
         dragging={isDragging}
+        grabbed={isGrabbed}
         styleVariant={styleVariant as 'snap' | 'flat' | 'layered'}
         onClick={() => onOpen(path)}
-        dragHandleProps={listeners}
+        dragHandleProps={wrappedListeners}
       />
     </div>
   );
@@ -127,15 +144,32 @@ function DraggableRepeat({
   drag: _drag, dropTarget: _dropTarget, nestViz, styleVariant: _styleVariant, depth, renderSeq,
 }: DraggableRepeatProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: block.id });
+  const [isGrabbed, setIsGrabbed] = useState(false);
+
+  useEffect(() => {
+    if (isDragging) setIsGrabbed(false);
+  }, [isDragging]);
+
+  const wrappedListeners = {
+    ...listeners,
+    onPointerDown: (e: React.PointerEvent<Element>) => {
+      setIsGrabbed(true);
+      (listeners as any)?.onPointerDown?.(e);
+    },
+    onPointerUp: () => setIsGrabbed(false),
+    onPointerCancel: () => setIsGrabbed(false),
+  };
+
   return (
     <div ref={setNodeRef} {...attributes}>
       <RepeatBlockCard
         block={block}
         dragging={isDragging}
+        grabbed={isGrabbed}
         onClick={() => onOpen(path)}
         onDecrement={() => onDecrement(path)}
         onIncrement={() => onIncrement(path)}
-        dragHandleProps={listeners}
+        dragHandleProps={wrappedListeners}
         nestViz={nestViz}
       >
         {renderSeq(block.sequence, path, depth + 1)}

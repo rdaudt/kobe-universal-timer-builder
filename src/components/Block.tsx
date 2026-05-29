@@ -8,6 +8,7 @@ interface BlockProps {
   block: FoundationBlock;
   mini?: boolean;
   dragging?: boolean;
+  grabbed?: boolean;
   isOverlay?: boolean;
   styleVariant?: StyleVariant;
   dragHandle?: boolean;
@@ -18,7 +19,7 @@ interface BlockProps {
 }
 
 export function Block({
-  block, mini, dragging, isOverlay, styleVariant = 'snap',
+  block, mini, dragging, grabbed, isOverlay, styleVariant = 'snap',
   dragHandle = true, hideDuration = false,
   onClick, dragHandleProps, style: extraStyle,
 }: BlockProps) {
@@ -33,6 +34,7 @@ export function Block({
 
   let blockClass = 'block';
   if (dragging) blockClass += ' block--dragging';
+  if (grabbed && !dragging) blockClass += ' block--grabbed';
   if (isOverlay) blockClass += ' block--overlay';
   if (styleVariant === 'flat') blockClass += ' block--flat';
   if (styleVariant === 'layered') blockClass += ' block--layered';
@@ -126,6 +128,7 @@ export function RepeatChip({ dragging, dragProps }: RepeatChipProps) {
 interface RepeatBlockCardProps {
   block: RepeatBlock;
   dragging?: boolean;
+  grabbed?: boolean;
   isOverlay?: boolean;
   onClick?: () => void;
   onDecrement?: () => void;
@@ -136,12 +139,18 @@ interface RepeatBlockCardProps {
 }
 
 export function RepeatBlockCard({
-  block, dragging, isOverlay, onClick, onDecrement, onIncrement,
+  block, dragging, grabbed, isOverlay, onClick, onDecrement, onIncrement,
   dragHandleProps, children, nestViz = 'bracket',
 }: RepeatBlockCardProps) {
+  const repeatClass = [
+    'repeat',
+    dragging ? 'block--dragging' : '',
+    grabbed && !dragging ? 'block--grabbed' : '',
+    isOverlay ? 'block--overlay' : '',
+  ].filter(Boolean).join(' ');
   return (
     <div
-      className={`repeat ${dragging ? 'block--dragging' : ''} ${isOverlay ? 'block--overlay' : ''}`}
+      className={repeatClass}
       data-viz={nestViz}
       onClick={onClick}
       style={{ cursor: 'pointer', marginBottom: 2 }}
