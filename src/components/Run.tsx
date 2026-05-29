@@ -43,7 +43,7 @@ export function Run({ timer, layout = 'ring', onExit, onComplete }: RunProps) {
 
     let localIdx = 0;
     let localRemaining = queue[0]?.duration ?? 0;
-    let blockStart = performance.now();
+    let blockStart = 0;
 
     worker.postMessage({ type: 'start' });
 
