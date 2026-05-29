@@ -8,18 +8,19 @@ import TimerWorker from '../workers/timerWorker?worker';
 interface RunProps {
   timer: TimerDefinition;
   layout?: 'ring' | 'centered' | 'fullbleed';
-  showTimeline?: boolean;
   onExit: () => void;
   onComplete: () => void;
 }
 
-export function Run({ timer, layout = 'ring', showTimeline = false, onExit, onComplete }: RunProps) {
+export function Run({ timer, layout = 'ring', onExit, onComplete }: RunProps) {
   const queue = useMemo(() => flattenTimer(timer), [timer]);
   const [idx, setIdx] = useState(0);
   const [remaining, setRemaining] = useState(queue[0]?.duration ?? 0);
   const [paused, setPaused] = useState(false);
   const totalDur = useMemo(() => queue.reduce((s, b) => s + b.duration, 0), [queue]);
   const [elapsed, setElapsed] = useState(0);
+  const [showMap, setShowMap] = useState(false);
+  const jumpTargetRef = useRef<number | null>(null);
 
   const workerRef = useRef<Worker | null>(null);
 
@@ -55,6 +56,21 @@ export function Run({ timer, layout = 'ring', showTimeline = false, onExit, onCo
 
     worker.onmessage = (e: MessageEvent) => {
       const { elapsed: workerElapsed } = e.data as { elapsed: number };
+
+      if (jumpTargetRef.current !== null) {
+        const jt = jumpTargetRef.current;
+        jumpTargetRef.current = null;
+        if (jt > localIdx && jt < queue.length) {
+          localIdx = jt;
+          blockStart = workerElapsed;
+          setIdx(localIdx);
+          setRemaining(queue[localIdx].duration);
+          const jb = queue[localIdx];
+          if (jb?.type === 'rest') playRestChime(); else playBlockStart();
+          return;
+        }
+      }
+
       const nowElapsed = Math.round(workerElapsed / 1000);
       setElapsed(nowElapsed);
 
@@ -114,11 +130,18 @@ export function Run({ timer, layout = 'ring', showTimeline = false, onExit, onCo
     setRemaining(queue[idx + 1].duration);
   };
 
+  const jumpTo = (targetIdx: number) => {
+    if (targetIdx <= idx || targetIdx >= queue.length) return;
+    jumpTargetRef.current = targetIdx;
+    setIdx(targetIdx);
+    setRemaining(queue[targetIdx].duration);
+  };
+
   const bgColor = current?.color ?? '#D4A017';
   const ink = current?.type === 'rest' || current?.type === 'transition' ? '#F4EFE2' : (BLOCK_DEFAULTS[current?.type ?? 'work']?.ink ?? '#0F0F11');
   const isPrep = current?.type === 'prepare';
 
-  const layoutProps = { current, next, remaining, blockProgress, overallProgress, idx, totalQ: queue.length, ink, bgColor, isPrep, compact: showTimeline };
+  const layoutProps = { current, next, remaining, blockProgress, overallProgress, idx, totalQ: queue.length, ink, bgColor, isPrep, compact: showMap };
 
   return (
     <div
@@ -138,18 +161,24 @@ export function Run({ timer, layout = 'ring', showTimeline = false, onExit, onCo
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: paused ? '#E04060' : '#5BA85A' }} className={paused ? '' : 'pulse'} />
           {paused ? 'Paused' : timer.name}
         </div>
-        <div style={{ width: 40 }} />
+        <button
+          onClick={() => setShowMap((m) => !m)}
+          className="btn btn--icon"
+          style={{ width: 40, height: 40, background: showMap ? 'var(--gold)' : (layout === 'fullbleed' ? 'rgba(0,0,0,0.18)' : 'var(--surface)') }}
+        >
+          <Icon name="map" size={16} color={showMap ? 'var(--gold-ink)' : (layout === 'fullbleed' ? ink : 'var(--ink)')} />
+        </button>
       </div>
 
       {/* Main area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 'calc(env(safe-area-inset-top, 0px) + 80px) 0 0', gap: showTimeline ? 4 : 0, minHeight: 0, overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 'calc(env(safe-area-inset-top, 0px) + 80px) 0 0', gap: showMap ? 4 : 0, minHeight: 0, overflow: 'hidden' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
           {layout === 'fullbleed' && <RunFullbleed {...layoutProps} />}
           {layout === 'centered' && <RunCentered {...layoutProps} />}
           {layout === 'ring' && <RunRing {...layoutProps} />}
         </div>
-        {showTimeline && (
-          <RunTimeline timer={timer} current={current} elapsed={elapsed} ink={layout === 'fullbleed' ? ink : 'var(--ink)'} isFullbleed={layout === 'fullbleed'} totalDur={totalDur} />
+        {showMap && (
+          <RunTimeline timer={timer} current={current} elapsed={elapsed} ink={layout === 'fullbleed' ? ink : 'var(--ink)'} isFullbleed={layout === 'fullbleed'} totalDur={totalDur} queue={queue} currentIdx={idx} onJumpTo={jumpTo} />
         )}
       </div>
 
@@ -301,7 +330,7 @@ function RunFullbleed({ current, remaining, ink, isPrep: _isPrep, compact }: Lay
 
 import type { TimerNode } from '../types';
 
-function RunTimeline({ timer, current, elapsed, ink, isFullbleed, totalDur }: { timer: TimerDefinition; current: FlatBlock | undefined; elapsed: number; ink: string; isFullbleed: boolean; totalDur: number }) {
+function RunTimeline({ timer, current, elapsed, ink, isFullbleed, totalDur, queue, currentIdx, onJumpTo }: { timer: TimerDefinition; current: FlatBlock | undefined; elapsed: number; ink: string; isFullbleed: boolean; totalDur: number; queue: FlatBlock[]; currentIdx: number; onJumpTo: (i: number) => void }) {
   const ctxMap: Record<string, { cur: number; total: number }> = {};
   (current?._ctx ?? []).forEach((c) => { ctxMap[c.id] = c; });
   const currentLeafId = current?.id;
@@ -317,7 +346,7 @@ function RunTimeline({ timer, current, elapsed, ink, isFullbleed, totalDur }: { 
         );
       }
       const isCurrent = currentLeafId === b.id;
-      return <LeafBar key={b.id} block={b} isCurrent={isCurrent} totalDur={totalDur} ink={ink} isFullbleed={isFullbleed} />;
+      return <LeafBar key={b.id} block={b} isCurrent={isCurrent} totalDur={totalDur} ink={ink} isFullbleed={isFullbleed} queue={queue} currentIdx={currentIdx} onJumpTo={onJumpTo} />;
     });
   };
 
@@ -342,19 +371,31 @@ function RunTimeline({ timer, current, elapsed, ink, isFullbleed, totalDur }: { 
 
 import type { FoundationBlock, RepeatBlock } from '../types';
 
-function LeafBar({ block, isCurrent, totalDur, ink, isFullbleed }: { block: FoundationBlock; isCurrent: boolean; totalDur: number; ink: string; isFullbleed: boolean }) {
+function LeafBar({ block, isCurrent, totalDur, ink, isFullbleed, queue, currentIdx, onJumpTo }: { block: FoundationBlock; isCurrent: boolean; totalDur: number; ink: string; isFullbleed: boolean; queue: FlatBlock[]; currentIdx: number; onJumpTo: (i: number) => void }) {
   const ratio = block.duration / totalDur;
   const h = Math.max(8, Math.min(40, Math.round(ratio * 360)));
+  const isPast = !queue.slice(currentIdx).some((fb) => fb.id === block.id);
+  const nextIdx = !isPast && !isCurrent ? queue.findIndex((fb, i) => i > currentIdx && fb.id === block.id) : -1;
+  const canJump = nextIdx !== -1;
+
+  const leafRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (isCurrent) leafRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [isCurrent]);
+
   return (
     <div
+      ref={leafRef}
       title={`${block.name} · ${fmt(block.duration)}`}
+      onClick={canJump ? () => onJumpTo(nextIdx) : undefined}
       style={{
         position: 'relative', height: h, borderRadius: 4, background: block.color,
-        opacity: isCurrent ? 1 : (isFullbleed ? 0.55 : 0.7),
+        opacity: isCurrent ? 1 : isPast ? 0.2 : (isFullbleed ? 0.55 : 0.65),
         boxShadow: isCurrent ? `0 0 0 1.5px ${ink}, 0 0 14px ${block.color}cc` : 'inset 0 1px 0 rgba(255,255,255,0.18)',
         transform: isCurrent ? 'scaleX(1.15)' : 'scaleX(1)',
         transformOrigin: 'center',
         transition: 'transform .2s, opacity .2s, box-shadow .2s',
+        cursor: canJump ? 'pointer' : 'default',
       }}
     >
       {isCurrent && (
@@ -369,7 +410,7 @@ function RepeatGroup({ block, active, ink, isFullbleed, children }: { block: Rep
   return (
     <div style={{ position: 'relative', paddingLeft: 8, paddingTop: 2, paddingBottom: 4, borderLeft: `1.5px solid ${accent}`, borderTop: `1.5px solid ${accent}`, borderBottom: `1.5px solid ${accent}`, borderRadius: '6px 0 0 6px', marginLeft: 2 }}>
       <div style={{ position: 'absolute', top: -7, right: -2, padding: '1px 5px', borderRadius: 4, background: active ? (isFullbleed ? 'rgba(0,0,0,0.85)' : 'var(--gold)') : (isFullbleed ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.08)'), color: active ? (isFullbleed ? ink : 'var(--gold-ink)') : (isFullbleed ? ink : 'var(--ink-2)'), fontSize: 9, fontWeight: 800, letterSpacing: '0.04em', fontFamily: 'var(--f-display)', boxShadow: active ? `0 0 8px ${isFullbleed ? 'rgba(0,0,0,0.4)' : 'var(--gold-glow)'}` : 'none' }}>
-        {active ? `${active.cur}/${active.total}` : `×${block.repetitions}`}
+        {active ? `${active.cur} of ${active.total}` : `×${block.repetitions}`}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>{children}</div>
     </div>

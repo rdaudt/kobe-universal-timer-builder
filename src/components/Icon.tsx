@@ -40,6 +40,7 @@ export function Icon({ name, size = 18, color = 'currentColor', stroke = 2 }: Ic
     case 'sparkle':    return <svg {...p}><path d="M12 3l1.5 5L18 9l-4.5 1L12 15l-1.5-5L6 9l4.5-1L12 3z" fill={color} stroke="none"/></svg>;
     case 'bolt':       return <svg {...p}><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z" fill={color} stroke="none"/></svg>;
     case 'volume':     return <svg {...p}><path d="M11 5L6 9H2v6h4l5 4V5z" fill={color} stroke={color}/></svg>;
+    case 'map':        return <svg {...p}><path d="M12 3v5M12 11v5"/><circle cx="12" cy="4" r="2.5"/><circle cx="12" cy="12" r="2.5"/><circle cx="12" cy="20" r="2.5"/></svg>;
     default: return null;
   }
 }
