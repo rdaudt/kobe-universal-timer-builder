@@ -109,6 +109,7 @@ function DurationStepper({ value, onChange, min = 1, max = 3600 }: DurationStepp
   };
 
   const commitEdit = () => {
+    if (!editing) return;
     const parsed = parseDuration(draft);
     if (parsed !== null && parsed >= min && parsed <= max) {
       onChange(Math.round(parsed));
