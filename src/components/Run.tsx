@@ -220,52 +220,103 @@ interface LayoutProps {
   compact: boolean;
 }
 
-function RunRing({ current, next, remaining, blockProgress, bgColor, isPrep, compact }: LayoutProps) {
-  const ringSize = compact ? 220 : 300;
-  const r = compact ? 95 : 130;
-  const c = 2 * Math.PI * r;
-  const stroke = compact ? 11 : 14;
+function RunRing({ current, next, remaining, ink, bgColor, isPrep, compact }: LayoutProps) {
+  const maxSize = compact ? 220 : 340;
+  const nextInk = next
+    ? (next.type === 'rest' || next.type === 'transition'
+        ? '#F4EFE2'
+        : (BLOCK_DEFAULTS[next.type ?? 'work']?.ink ?? '#0F0F11'))
+    : '#0F0F11';
+
   return (
-    <div style={{ padding: compact ? '0 16px 0 20px' : '0 24px', textAlign: 'center', color: '#F4EFE2' }}>
-      <div className="t-tag" style={{ color: bgColor, marginBottom: compact ? 8 : 12, fontSize: 12 }}>
-        {(current?.label ?? current?.name ?? '').toUpperCase()}
-      </div>
-      <div className="ring-wrap" style={{ width: ringSize, height: ringSize }}>
-        <svg viewBox={`0 0 ${ringSize} ${ringSize}`}>
-          <circle cx={ringSize / 2} cy={ringSize / 2} r={r} stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} fill="none" />
-          <circle
-            cx={ringSize / 2} cy={ringSize / 2} r={r}
-            stroke={bgColor} strokeWidth={stroke} fill="none"
-            strokeLinecap="round"
-            strokeDasharray={c}
-            strokeDashoffset={c * (1 - blockProgress)}
-            style={{ transition: 'stroke-dashoffset 1s linear, stroke .4s ease', filter: `drop-shadow(0 0 14px ${bgColor})` }}
-          />
-        </svg>
-        <div className="center">
-          <div className="big" style={{ color: '#F4EFE2', fontSize: compact ? 62 : 86 }}>{fmt(remaining)}</div>
-          <div style={{ marginTop: 4, color: 'var(--ink-2)', fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase', maxWidth: compact ? 150 : 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {isPrep ? 'Starting in…' : current?.name}
-          </div>
+    <div style={{ padding: compact ? '0 16px 0 20px' : '0 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+
+      {/* Current block square */}
+      <div
+        style={{
+          width: '100%',
+          maxWidth: maxSize,
+          aspectRatio: '1 / 1',
+          background: bgColor,
+          borderRadius: 20,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'background .4s ease',
+          flexShrink: 0,
+        }}
+      >
+        <div className="t-num" style={{ fontSize: compact ? 62 : 80, lineHeight: 1, color: ink }}>
+          {fmt(remaining)}
+        </div>
+        <div style={{
+          marginTop: 8,
+          fontSize: compact ? 14 : 18,
+          fontWeight: 600,
+          color: ink,
+          opacity: 0.8,
+          textAlign: 'center',
+          padding: '0 16px',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          maxWidth: '100%',
+        }}>
+          {isPrep ? 'Starting in…' : current?.name}
         </div>
       </div>
 
-      <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
-        {(current?._ctx ?? []).map((c, i) => (
-          <div key={i} className="pill pill--gold" style={{ fontSize: 11 }}>
-            {c.name} · {c.cur} of {c.total}
-          </div>
-        ))}
-      </div>
-
-      {next && !compact && (
-        <div style={{ marginTop: 18, padding: '10px 14px', background: 'var(--surface)', borderRadius: 14, display: 'flex', alignItems: 'center', gap: 10, width: 'fit-content', margin: '18px auto 0' }}>
-          <div className="t-tag" style={{ color: 'var(--ink-3)', fontSize: 10 }}>Up next</div>
-          <div style={{ width: 8, height: 8, borderRadius: 2, background: next.color }} />
-          <div style={{ fontWeight: 600, fontSize: 13 }}>{next.name}</div>
-          <div className="t-mono" style={{ color: 'var(--ink-2)', fontSize: 12 }}>{fmt(next.duration)}</div>
+      {/* Context pills (repeat counters) */}
+      {(current?._ctx ?? []).length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+          {(current?._ctx ?? []).map((c, i) => (
+            <div key={i} className="pill pill--gold" style={{ fontSize: 11 }}>
+              {c.name} · {c.cur} of {c.total}
+            </div>
+          ))}
         </div>
       )}
+
+      {/* Next block square */}
+      {next && (
+        <div
+          style={{
+            width: '48%',
+            maxWidth: compact ? 106 : 163,
+            aspectRatio: '1 / 1',
+            background: next.color,
+            borderRadius: 14,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background .4s ease',
+            flexShrink: 0,
+          }}
+        >
+          <div style={{ fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 700, color: nextInk, opacity: 0.7, marginBottom: 4 }}>
+            Up next
+          </div>
+          <div style={{
+            fontSize: compact ? 11 : 13,
+            fontWeight: 600,
+            color: nextInk,
+            textAlign: 'center',
+            padding: '0 8px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            maxWidth: '100%',
+          }}>
+            {next.name}
+          </div>
+          <div className="t-mono" style={{ fontSize: 11, color: nextInk, opacity: 0.7, marginTop: 2 }}>
+            {fmt(next.duration)}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
