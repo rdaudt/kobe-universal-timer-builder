@@ -159,15 +159,10 @@ function BlockSetup({ block, onChange, colorPresets }: { block: FoundationBlock;
       <Block block={block} dragHandle={false} />
 
       <Section label="Duration">
-        <div className="stepper">
-          <button onClick={() => onChange((b) => { if (b.type !== 'repeat') b.duration = Math.max(1, b.duration - 5); })}>
-            <Icon name="minus" size={14} color="var(--ink-2)" />
-          </button>
-          <div className="val">{fmt(block.duration)}</div>
-          <button onClick={() => onChange((b) => { if (b.type !== 'repeat') b.duration = Math.min(3600, b.duration + 5); })}>
-            <Icon name="plus" size={14} color="var(--ink-2)" />
-          </button>
-        </div>
+        <DurationStepper
+          value={block.duration}
+          onChange={(v) => onChange((b) => { if (b.type !== 'repeat') b.duration = v; })}
+        />
         <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
           {[10, 20, 30, 45, 60, 90, 120, 180].map((s) => (
             <button
