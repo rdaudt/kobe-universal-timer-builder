@@ -47,14 +47,18 @@ export function playBlockEnd(): void {
   tone(660, 0.15, 0.3);
 }
 
+export function playLongBeep(): void {
+  tone(660, 0.6, 0.45);
+}
+
 export function playRestChime(): void {
   tone(440, 0.3, 0.3);
   tone(330, 0.3, 0.2, 'sine', 0.1);
 }
 
 export function playCountdownBeep(beepNumber: number): void {
-  const freqs = [880, 770, 660];
-  tone(freqs[beepNumber] ?? 660, 0.1, 0.4);
+  const freqs = [880, 770, 680, 620, 560];
+  tone(freqs[beepNumber] ?? 560, 0.1, 0.4);
 }
 
 export function playCompletion(): void {
