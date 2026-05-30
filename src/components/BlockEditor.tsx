@@ -254,14 +254,11 @@ function RepeatEditor({ block, onChange }: { block: RepeatBlock; onChange: (mut:
           })}
         />
         {block.restBetweenReps && (
-          <div className="stepper" style={{ marginTop: 8 }}>
-            <button onClick={() => onChange((b) => { if (b.type === 'repeat' && b.restBetweenReps) b.restBetweenReps.duration = Math.max(1, b.restBetweenReps.duration - 5); })}>
-              <Icon name="minus" size={14} color="var(--ink-2)" />
-            </button>
-            <div className="val">{fmt(block.restBetweenReps.duration)}</div>
-            <button onClick={() => onChange((b) => { if (b.type === 'repeat' && b.restBetweenReps) b.restBetweenReps.duration += 5; })}>
-              <Icon name="plus" size={14} color="var(--ink-2)" />
-            </button>
+          <div style={{ marginTop: 8 }}>
+            <DurationStepper
+              value={block.restBetweenReps.duration}
+              onChange={(v) => onChange((b) => { if (b.type === 'repeat' && b.restBetweenReps) b.restBetweenReps.duration = v; })}
+            />
           </div>
         )}
       </Section>
