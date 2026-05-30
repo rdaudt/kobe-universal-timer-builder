@@ -44,6 +44,7 @@ export function Run({ timer, layout = 'ring', onExit, onComplete }: RunProps) {
     let localIdx = 0;
     let localRemaining = queue[0]?.duration ?? 0;
     let blockStart = 0;
+    let lastBeepRound = -1;
 
     worker.postMessage({ type: 'start' });
 
@@ -66,9 +67,10 @@ export function Run({ timer, layout = 'ring', onExit, onComplete }: RunProps) {
 
       setRemaining(rem);
 
-      // Countdown beeps in last 5 seconds
+      // Countdown beeps in last 5 seconds — one beep per integer second
       const remRound = Math.ceil(rem);
-      if (remRound <= 5 && remRound > 0) {
+      if (remRound <= 5 && remRound > 0 && remRound !== lastBeepRound) {
+        lastBeepRound = remRound;
         playCountdownBeep(5 - remRound);
       }
 
@@ -83,6 +85,7 @@ export function Run({ timer, layout = 'ring', onExit, onComplete }: RunProps) {
         }
         localIdx++;
         blockStart = workerElapsed;
+        lastBeepRound = -1;
         const nextBlock = queue[localIdx];
         localRemaining = nextBlock?.duration ?? 0;
         setIdx(localIdx);
