@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Icon } from './Icon';
 import { Block } from './Block';
 import { makeBlock, fmt, fmtLoose, totalDuration, BLOCK_DEFAULTS } from '../lib/helpers';
@@ -66,6 +67,88 @@ export function BlockEditor({ path, block, onChange, onClose, onDelete, onDuplic
         </div>
       </div>
     </>
+  );
+}
+
+function parseDuration(raw: string): number | null {
+  const s = raw.trim();
+  if (s.includes(':')) {
+    const parts = s.split(':');
+    const m = parseInt(parts[0], 10);
+    const sec = parseInt(parts[1], 10);
+    if (isNaN(m) || isNaN(sec)) return null;
+    return m * 60 + sec;
+  }
+  const n = parseInt(s, 10);
+  if (isNaN(n) || !Number.isFinite(n)) return null;
+  return n;
+}
+
+function snapDecrement(current: number, min: number): number {
+  return Math.max(min, current % 5 === 0 ? current - 5 : Math.floor(current / 5) * 5);
+}
+
+function snapIncrement(current: number, max: number): number {
+  return Math.min(max, current % 5 === 0 ? current + 5 : Math.ceil(current / 5) * 5);
+}
+
+interface DurationStepperProps {
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  max?: number;
+}
+
+function DurationStepper({ value, onChange, min = 1, max = 3600 }: DurationStepperProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+
+  const startEdit = () => {
+    setDraft(String(value));
+    setEditing(true);
+  };
+
+  const commitEdit = () => {
+    const parsed = parseDuration(draft);
+    if (parsed !== null && parsed >= min && parsed <= max) {
+      onChange(Math.round(parsed));
+    }
+    setEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') commitEdit();
+    if (e.key === 'Escape') setEditing(false);
+  };
+
+  return (
+    <div className="stepper">
+      <button onClick={() => onChange(snapDecrement(value, min))}>
+        <Icon name="minus" size={14} color="var(--ink-2)" />
+      </button>
+      {editing ? (
+        <input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commitEdit}
+          onKeyDown={handleKeyDown}
+          style={{
+            width: 72, textAlign: 'center', background: 'transparent',
+            border: 'none', borderBottom: '1px solid var(--gold)',
+            color: 'var(--ink)', fontFamily: 'var(--f-mono)',
+            fontSize: 'inherit', outline: 'none', padding: '2px 0',
+          }}
+        />
+      ) : (
+        <div className="val" onClick={startEdit} style={{ cursor: 'text' }}>
+          {fmt(value)}
+        </div>
+      )}
+      <button onClick={() => onChange(snapIncrement(value, max))}>
+        <Icon name="plus" size={14} color="var(--ink-2)" />
+      </button>
+    </div>
   );
 }
 
