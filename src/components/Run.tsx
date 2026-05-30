@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Icon } from './Icon';
 import { flattenTimer, totalDuration, fmt, fmtLoose, BLOCK_DEFAULTS } from '../lib/helpers';
-import { initAudio, playBlockStart, playBlockEnd, playRestChime, playCountdownBeep, playCompletion } from '../lib/audio';
+import { initAudio, playBlockStart, playLongBeep, playRestChime, playCountdownBeep, playCompletion } from '../lib/audio';
 import type { TimerDefinition, FlatBlock } from '../types';
 import TimerWorker from '../workers/timerWorker?worker';
 
@@ -66,15 +66,15 @@ export function Run({ timer, layout = 'ring', onExit, onComplete }: RunProps) {
 
       setRemaining(rem);
 
-      // Countdown beeps in last 3 seconds
+      // Countdown beeps in last 5 seconds
       const remRound = Math.ceil(rem);
-      if (remRound <= 3 && remRound > 0) {
-        playCountdownBeep(3 - remRound);
+      if (remRound <= 5 && remRound > 0) {
+        playCountdownBeep(5 - remRound);
       }
 
       if (rem <= 0) {
         // Advance
-        playBlockEnd();
+        playLongBeep();
         if (localIdx + 1 >= queue.length) {
           worker.postMessage({ type: 'stop' });
           if ((timer.completionSound ?? 'completion-horn') !== 'none') playCompletion();
